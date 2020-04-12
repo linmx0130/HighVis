@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include <QVBoxLayout>
+#include "volumndata.h"
 MainWindow::MainWindow(QWidget *parent)
     : QWidget(parent), layout(nullptr)
 {
@@ -28,11 +29,6 @@ void MainWindow::glWidgetStateChange()
     log = log.asprintf("Camera Pos = (%f, %f, %f).\n", camera_pos.x(), camera_pos.y(), camera_pos.z());
     QVector3D camera_dir = glWidget->getCameraDirection();
     log.append(log.asprintf("Camera Dir = (%f, %f, %f).\n", camera_dir.x(), camera_dir.y(), camera_dir.z()));
-    if (glWidget->isRotating()) {
-        log.append("Stop rotating by pressing Space.");
-    } else {
-        log.append("Resume rotating by pressing Space.");
-    }
     logLabel->setPlainText(log);
 }
 

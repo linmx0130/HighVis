@@ -9,6 +9,7 @@
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLTexture>
 #include <QElapsedTimer>
+#include "volumndata.h"
 class GLWidget : public QOpenGLWidget
 {
     Q_OBJECT
@@ -21,10 +22,6 @@ public:
     QVector3D getCameraDirection() {
         return camera_direction;
     }
-
-    bool isRotating(){
-        return _isRotating;
-    }
 signals:
     void stateChanged();
 
@@ -33,19 +30,20 @@ protected:
     void paintGL();
     void resizeGL(int w, int h);
     void keyPressEvent(QKeyEvent *event);
-
+    void initVolumnTexture();
 private:
     QOpenGLBuffer *m_vbo;
     QOpenGLVertexArrayObject *m_vao;
     QOpenGLShaderProgram *m_shader;
     QOpenGLTexture *m_texture;
-    QElapsedTimer *timer;
+    GLuint m_volumn_texture;
     QVector3D camera_pos;
     QVector3D camera_direction;
+    VolumnData volumnData;
     float aspectRatio;
-    bool _isRotating;
     qint64 lastTimerValue;
-    float degree;
+    // vis view parameters
+    QVector3D visLookFrom, visLookAt, visLookUp;
 };
 
 #endif // GLWIDGET_H

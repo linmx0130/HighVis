@@ -18,11 +18,13 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
     glwidget.cpp \
     main.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    volumndata.cpp
 
 HEADERS += \
     glwidget.h \
-    mainwindow.h
+    mainwindow.h \
+    volumndata.h
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
