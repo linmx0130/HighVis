@@ -6,11 +6,14 @@
 #include <QFile>
 #include <QFileInfo>
 #include <string>
-
+#include <QDebug>
 
 VolumnMetaData VolumnData::parseMetaFile(const char *filename) {
     QFile file(filename);
-    file.open(QIODevice::ReadOnly | QIODevice::Text);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qFatal("Can't open file %s!", filename);
+        //exit(2);
+    }
     QByteArray buf = file.readAll();
     file.close();
     QJsonDocument jsonDocument = QJsonDocument::fromJson(buf);
@@ -31,7 +34,9 @@ VolumnMetaData VolumnData::parseMetaFile(const char *filename) {
 }
 void VolumnData::parseRawData(){
     QFile file(this->rawFilename);
-    file.open(QIODevice::ReadOnly);
+    if (!file.open(QIODevice::ReadOnly)){
+        qFatal("Can't open file %s!", this->rawFilename.toStdString().c_str());
+    }
     this->rawData = file.readAll();
     file.close();
 }

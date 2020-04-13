@@ -12,9 +12,10 @@ static const GLfloat VERTEX_DATA[] = {
     0.5f, 0.5f, 0.5f,  0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
      -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
  };
-GLWidget::GLWidget(QWidget *nulltpr):
-    QOpenGLWidget(nulltpr), m_vbo(nullptr), m_vao(nullptr), m_shader(nullptr), m_texture(nullptr), camera_pos(0.f, 0.f, 2.f), camera_direction(0.f, 0.f, 1.f),
-    volumnData("../bonsai.json"), visLookFrom(0.5f, 0.5f, -1.0f), visLookAt(0.5f, 0.5f, 0.5f), visLookUp(0.0f, 1.0f, 0.0f)
+GLWidget::GLWidget(const char* filename, QWidget *nulltpr):
+    QOpenGLWidget(nulltpr), m_vbo(nullptr), m_vao(nullptr), m_shader(nullptr), camera_pos(0.f, 0.f, 2.f),
+    camera_direction(0.f, 0.f, 1.f), volumnData(filename), visLookFrom(0.5f, 0.5f, -1.0f), visLookAt(0.5f, 0.5f, 0.5f),
+    visLookUp(0.0f, 1.0f, 0.0f), lightColor(1.0f, 1.0f, 1.0f, 1.0f), alphaThreshold(0.2), interpolationType(0.0f)
 {
     setFocusPolicy(Qt::StrongFocus); // enable the widget to receive key press
 }
@@ -53,12 +54,6 @@ void GLWidget::initializeGL()
     } else {
         qDebug("Shaders link failed!");
     }
-    // load texture
-    if (m_texture) {
-        delete m_texture;
-    }
-    QImage img = QImage(":/imgs/container.jpg");
-    m_texture = new QOpenGLTexture(img);
     initVolumnTexture();
     // build VAO
     if (m_vao) delete m_vao;
@@ -98,7 +93,6 @@ void GLWidget::paintGL()
     f->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     m_vao->bind();
     m_shader->bind();
-    // m_texture->bind();
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_3D, m_volumn_texture);
     //build MVP matrix
@@ -118,15 +112,14 @@ void GLWidget::paintGL()
     m_shader->setUniformValue(m_shader->uniformLocation("dataSize"), dataSize);
     m_shader->setUniformValue(m_shader->uniformLocation("diffuseK"), 0.9f);
     m_shader->setUniformValue(m_shader->uniformLocation("lightPos"), QVector3D(0.5f, -2.0f, 0.5f));
-    //m_shader->setUniformValue(m_shader->uniformLocation("lightPos"), visLookFrom);
-    m_shader->setUniformValue(m_shader->uniformLocation("lightColor"), QVector4D(1.0f, 1.0f, 1.0f, 1.0f));
-    m_shader->setUniformValue(m_shader->uniformLocation("interpolationType"), 1.0f);
+    m_shader->setUniformValue(m_shader->uniformLocation("lightColor"), this->lightColor);
+    m_shader->setUniformValue(m_shader->uniformLocation("interpolationType"), this->interpolationType);
+    m_shader->setUniformValue(m_shader->uniformLocation("alphaThreshold"), this->alphaThreshold);
     // draw object
     f->glDrawArrays(GL_TRIANGLES, 0, 6);
     // release
     m_shader->release();
     m_vao->release();
-    //m_texture->release();
     //update(); // requrest to schedule an update
 }
 

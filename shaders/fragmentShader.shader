@@ -20,7 +20,7 @@ uniform vec4 lightColor;
 // 0 for bezier tricubic interpolation
 // 1 for trilinear interpolation
 uniform float interpolationType;
-
+uniform float alphaThreshold;
 bool inDataCube(vec3 point) {
     return ((point.x >= 0.0f) && (point.x <= 1.0f) && (point.y >= 0.0f) && (point.y <=1.0f) && (point.z >= 0.0f) && (point.z <=1.0f));
 }
@@ -206,7 +206,7 @@ void main() {
                 float currentAlpha = 0.0f;
                 float[64] beziers = getBezierControlPoints(newCoord);
                 currentAlpha = bezierTricubicApprox(beziers, newCoord);
-                if (currentAlpha >= 0.15) {
+                if (currentAlpha >= alphaThreshold) {
                     if (tempColor < 0.001) {
                         tempColor = 1 - diffuseK;
                     }
@@ -226,7 +226,7 @@ void main() {
                 float[8] nearestF = getNearestValues(newCoord);
                 vec3[8] nearestG = getNearestGradients(newCoord);
                 currentAlpha = getTrilinearApprox(nearestF, newCoord);
-                if (currentAlpha >= 0.15) {
+                if (currentAlpha >= alphaThreshold) {
                     if (tempColor < 0.001) {
                         tempColor = 1 - diffuseK;
                     }

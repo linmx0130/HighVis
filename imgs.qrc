@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
-        <file>imgs/container.jpg</file>
+        <file>imgs/bonsai_256x256x256_uint8.raw</file>
+        <file>imgs/bonsai.json</file>
     </qresource>
 </RCC>
