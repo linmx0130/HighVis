@@ -41,7 +41,6 @@ private:
     QVector3D camera_direction;
     VolumnData volumnData;
     float aspectRatio;
-    qint64 lastTimerValue;
     // vis view parameters
     QVector3D visLookFrom, visLookAt, visLookUp;
 };

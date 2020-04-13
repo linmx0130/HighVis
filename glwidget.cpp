@@ -1,7 +1,7 @@
 #include "glwidget.h"
 #include <QMatrix4x4>
 #include <QKeyEvent>
-
+#include <QDebug>
 
 static const GLfloat VERTEX_DATA[] = {
     //face 1 : z= 0.5f
@@ -14,7 +14,7 @@ static const GLfloat VERTEX_DATA[] = {
  };
 GLWidget::GLWidget(QWidget *nulltpr):
     QOpenGLWidget(nulltpr), m_vbo(nullptr), m_vao(nullptr), m_shader(nullptr), m_texture(nullptr), camera_pos(0.f, 0.f, 2.f), camera_direction(0.f, 0.f, 1.f),
-    lastTimerValue(0), volumnData("../bonsai.json"), visLookAt(0.5f, 0.5f, 0.5f), visLookFrom(0.5f, 0.5f, -1.0f), visLookUp(0.0f, 1.0f, 0.0f)
+    volumnData("../bonsai.json"), visLookAt(0.5f, 0.5f, 0.5f), visLookFrom(0.5f, 0.5f, -1.0f), visLookUp(0.0f, 1.0f, 0.0f)
 {
     setFocusPolicy(Qt::StrongFocus); // enable the widget to receive key press
 }
@@ -95,7 +95,7 @@ void GLWidget::resizeGL(int w, int h)
 void GLWidget::paintGL()
 {
     QOpenGLFunctions *f = this->context()->functions();
-    f->glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+    f->glClear(GL_COLOR_BUFFER_BIT);
     f->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     m_vao->bind();
     m_shader->bind();
@@ -115,13 +115,15 @@ void GLWidget::paintGL()
     m_shader->setUniformValue(m_shader->uniformLocation("lookFrom"), visLookFrom);
     m_shader->setUniformValue(m_shader->uniformLocation("lookAt"), visLookAt);
     m_shader->setUniformValue(m_shader->uniformLocation("lookUpVec"), visLookUp);
+    QVector3D dataSize(volumnData.getMetaData().size[0], volumnData.getMetaData().size[1], volumnData.getMetaData().size[2]);
+    m_shader->setUniformValue(m_shader->uniformLocation("dataSize"), dataSize);
     // draw object
     f->glDrawArrays(GL_TRIANGLES, 0, 6);
     // release
     m_shader->release();
     m_vao->release();
     //m_texture->release();
-    update(); // requrest to schedule an update
+    //update(); // requrest to schedule an update
 }
 
 void GLWidget::keyPressEvent(QKeyEvent *event) {
