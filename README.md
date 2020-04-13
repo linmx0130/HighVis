@@ -1,5 +1,7 @@
-VolumnVis
+HighVis
 ===
+3D ray casting visualization.
+
 Based on my preivous project: Cubes. 
 
 ## Build
