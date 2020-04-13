@@ -128,31 +128,43 @@ void GLWidget::keyPressEvent(QKeyEvent *event) {
     // 2 degree rotation
     const float SIN_2_DEG = 0.03489949670250097;
     const float COS_2_DEG = 0.9993908270190958;
-    float old_x = camera_direction.x();
-    float old_z = camera_direction.z();
-    float new_x, new_z;
-            /*
+    float new_x, new_y, new_z;
     switch(event->key()) {
         case Qt::Key::Key_Up:
-            if (zCoord < 1.0) zCoord += 0.02;
+            new_z = visLookFrom.z() * COS_2_DEG - visLookFrom.y() * SIN_2_DEG;
+            new_y = visLookFrom.z() * SIN_2_DEG + visLookFrom.y() * COS_2_DEG;
+            visLookFrom.setY(new_y);
+            visLookFrom.setZ(new_z);
+            new_z = visLookUp.z() * COS_2_DEG - visLookUp.y() * SIN_2_DEG;
+            new_y = visLookUp.z() * SIN_2_DEG + visLookUp.y() * COS_2_DEG;
+            visLookUp.setZ(new_z);
+            visLookUp.setY(new_y);
             break;
         case Qt::Key::Key_Down:
-            if (zCoord > 0) zCoord -= 0.02;
+            new_z = visLookFrom.z() * COS_2_DEG + visLookFrom.y() * SIN_2_DEG;
+            new_y = -visLookFrom.z() * SIN_2_DEG + visLookFrom.y() * COS_2_DEG;
+            visLookFrom.setY(new_y);
+            visLookFrom.setZ(new_z);
+            new_z = visLookUp.z() * COS_2_DEG + visLookUp.y() * SIN_2_DEG;
+            new_y = -visLookUp.z() * SIN_2_DEG + visLookUp.y() * COS_2_DEG;
+            visLookUp.setZ(new_z);
+            visLookUp.setY(new_y);
             break;
 
         case Qt::Key::Key_Right:
-            new_x = old_x * COS_2_DEG - old_z * SIN_2_DEG;
-            new_z = old_x * SIN_2_DEG + old_z * COS_2_DEG;
-            this->camera_direction.setX(new_x);
-            this->camera_direction.setZ(new_z);
+            // rotate the vis viewpoint 2 degree anti-clockwise with respect to look-at point
+            new_x = visLookFrom.x() * COS_2_DEG - visLookFrom.z() * SIN_2_DEG;
+            new_z = visLookFrom.x() * SIN_2_DEG + visLookFrom.z() * COS_2_DEG;
+            visLookFrom.setX(new_x);
+            visLookFrom.setZ(new_z);
             break;
         case Qt::Key::Key_Left:
-            new_x = old_x * COS_2_DEG + old_z * SIN_2_DEG;
-            new_z = -old_x * SIN_2_DEG + old_z * COS_2_DEG;
-            this->camera_direction.setX(new_x);
-            this->camera_direction.setZ(new_z);
+            new_x = visLookFrom.x() * COS_2_DEG + visLookFrom.z() * SIN_2_DEG;
+            new_z = -visLookFrom.x() * SIN_2_DEG + visLookFrom.z() * COS_2_DEG;
+            visLookFrom.setX(new_x);
+            visLookFrom.setZ(new_z);
             break;
-    }*/
+    }
     emit stateChanged();
     update();
 }

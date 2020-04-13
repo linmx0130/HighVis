@@ -20,10 +20,6 @@ bool inDataCube(vec3 point) {
     return ((point.x >= 0.0f) && (point.x <= 1.0f) && (point.y >= 0.0f) && (point.y <=1.0f) && (point.z >= 0.0f) && (point.z <=1.0f));
 }
 void main() {
-    /*
-    vec3 lookFrom = vec3(0.5f, 0.5f, -1.0f);
-    vec3 lookAt = vec3(0.5f, 0.5f, 0.5f);
-    vec3 lookUpVec = vec3(0.0f, 1.0f, 0.0f);*/
     // compute the distance from lookFrom to lookAt
     vec3 lookVec = lookAt - lookFrom;
     float distance = length(lookVec);
@@ -40,10 +36,10 @@ void main() {
         float currentAlpha = 0.0f;
         if (inDataCube(newCoord)) {
             currentAlpha = texture(ourTexture, newCoord).r;
-            if (currentAlpha < 0.2) currentAlpha = 0.0f;
+            if (currentAlpha < 0.15) currentAlpha = 0.0f;
         }
         tempColor = tempColor * (1-currentAlpha) + currentAlpha * 1.0f;
-        t = t - .003f;
+        t = t - .001f;
     }
     // vec3 newCoord = vec3(zCoord, texCoord.y, texCoord.x);
     // fragColor = texture(ourTexture, newCoord).r * vec4(1.0f, 1.0f, 1.0f, 1.0f);
