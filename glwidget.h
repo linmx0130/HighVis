@@ -17,10 +17,10 @@ public:
     GLWidget(QWidget *partent);
     ~GLWidget();
     QVector3D getCameraPos() {
-        return camera_pos;
+        return visLookFrom;
     }
     QVector3D getCameraDirection() {
-        return camera_direction;
+        return visLookAt - visLookFrom;
     }
 signals:
     void stateChanged();

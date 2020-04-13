@@ -14,7 +14,7 @@ static const GLfloat VERTEX_DATA[] = {
  };
 GLWidget::GLWidget(QWidget *nulltpr):
     QOpenGLWidget(nulltpr), m_vbo(nullptr), m_vao(nullptr), m_shader(nullptr), m_texture(nullptr), camera_pos(0.f, 0.f, 2.f), camera_direction(0.f, 0.f, 1.f),
-    volumnData("../bonsai.json"), visLookAt(0.5f, 0.5f, 0.5f), visLookFrom(0.5f, 0.5f, -1.0f), visLookUp(0.0f, 1.0f, 0.0f)
+    volumnData("../bonsai.json"), visLookFrom(0.5f, 0.5f, -1.0f), visLookAt(0.5f, 0.5f, 0.5f), visLookUp(0.0f, 1.0f, 0.0f)
 {
     setFocusPolicy(Qt::StrongFocus); // enable the widget to receive key press
 }
@@ -29,8 +29,8 @@ void GLWidget::initVolumnTexture(){
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);  // The array on the host has 1 byte alignment
     glTexImage3D(GL_TEXTURE_3D, 0, GL_R8,
                  volumnData.getMetaData().size[0],volumnData.getMetaData().size[1], volumnData.getMetaData().size[2],
@@ -86,7 +86,6 @@ void GLWidget::initializeGL()
     m_vao->release();
     emit stateChanged();
 }
-
 void GLWidget::resizeGL(int w, int h)
 {
     aspectRatio = (float)w / h;
@@ -117,6 +116,11 @@ void GLWidget::paintGL()
     m_shader->setUniformValue(m_shader->uniformLocation("lookUpVec"), visLookUp);
     QVector3D dataSize(volumnData.getMetaData().size[0], volumnData.getMetaData().size[1], volumnData.getMetaData().size[2]);
     m_shader->setUniformValue(m_shader->uniformLocation("dataSize"), dataSize);
+    m_shader->setUniformValue(m_shader->uniformLocation("diffuseK"), 0.9f);
+    m_shader->setUniformValue(m_shader->uniformLocation("lightPos"), QVector3D(0.5f, -2.0f, 0.5f));
+    //m_shader->setUniformValue(m_shader->uniformLocation("lightPos"), visLookFrom);
+    m_shader->setUniformValue(m_shader->uniformLocation("lightColor"), QVector4D(1.0f, 1.0f, 1.0f, 1.0f));
+    m_shader->setUniformValue(m_shader->uniformLocation("interpolationType"), 1.0f);
     // draw object
     f->glDrawArrays(GL_TRIANGLES, 0, 6);
     // release

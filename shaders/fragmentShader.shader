@@ -12,6 +12,14 @@ uniform vec3 lookFrom;
 uniform vec3 lookAt;
 // lookUpVec: up vector for the view
 uniform vec3 lookUpVec;
+// lightPos: light source fragPosition
+uniform vec3 lightPos;
+uniform float diffuseK;
+uniform vec4 lightColor;
+// interpolationType: control what interpolation will be used
+// 0 for bezier tricubic interpolation
+// 1 for trilinear interpolation
+uniform float interpolationType;
 
 bool inDataCube(vec3 point) {
     return ((point.x >= 0.0f) && (point.x <= 1.0f) && (point.y >= 0.0f) && (point.y <=1.0f) && (point.z >= 0.0f) && (point.z <=1.0f));
@@ -97,7 +105,8 @@ float bezier2(int i, float x) {
     return x * x;
 }
 float bezierTricubicApprox(float[64]beziers, vec3 coord) {
-    vec3 delta = coord - floor(coord * dataSize) / dataSize;
+    vec3 delta = coord * dataSize;
+    delta = delta - floor(delta);
     float ret = 0.0f;
     for (int i=0;i<4;++i) {
         for (int j=0;j<4; ++j) {
@@ -111,7 +120,8 @@ float bezierTricubicApprox(float[64]beziers, vec3 coord) {
     return ret;
 }
 vec3 bezierTricubicGradient(float[64]beziers, vec3 coord) {
-    vec3 delta = coord - floor(coord * dataSize) / dataSize;
+    vec3 delta = coord * dataSize;
+    delta = delta - floor(delta);
     vec3 ret;
     float tmp = 0.0f;
     for (int i=0;i<3;++i) {
@@ -149,6 +159,34 @@ vec3 bezierTricubicGradient(float[64]beziers, vec3 coord) {
     ret = ret * 3.0f;
     return ret;
 }
+float getTrilinearApprox(float[8] f, vec3 coord){
+    vec3 delta = coord * dataSize;
+    delta = delta - floor(delta);
+    float ret = 0.0f;
+    ret += f[0] * (1.0f-delta.x) * (1.0f-delta.y) * (1.0f-delta.z);
+    ret += f[1] * (1.0f-delta.x) * (1.0f-delta.y) * delta.z;
+    ret += f[2] * (1.0f-delta.x) * delta.y * (1.0f-delta.z);
+    ret += f[3] * (1.0f-delta.x) * delta.y * delta.z;
+    ret += f[4] * delta.x * (1.0f-delta.y) * (1.0f-delta.z);
+    ret += f[5] * delta.x * (1.0f-delta.y) * delta.z;
+    ret += f[6] * delta.x * delta.y * (1.0f-delta.z);
+    ret += f[7] * delta.x * delta.y * delta.z;
+    return ret;
+}
+vec3 getTrilinearGApprox(vec3[8] f, vec3 coord){
+    vec3 delta = coord * dataSize;
+    delta = delta - floor(delta);
+    vec3 ret = vec3(0.0f, 0.0f, 0.0f);
+    ret += f[0] * (1.0f-delta.x) * (1.0f-delta.y) * (1.0f-delta.z);
+    ret += f[1] * (1.0f-delta.x) * (1.0f-delta.y) * delta.z;
+    ret += f[2] * (1.0f-delta.x) * delta.y * (1.0f-delta.z);
+    ret += f[3] * (1.0f-delta.x) * delta.y * delta.z;
+    ret += f[4] * delta.x * (1.0f-delta.y) * (1.0f-delta.z);
+    ret += f[5] * delta.x * (1.0f-delta.y) * delta.z;
+    ret += f[6] * delta.x * delta.y * (1.0f-delta.z);
+    ret += f[7] * delta.x * delta.y * delta.z;
+    return ret;
+}
 void main() {
     // compute the distance from lookFrom to lookAt
     vec3 lookVec = lookAt - lookFrom;
@@ -161,19 +199,45 @@ void main() {
     //vec3 oppositePos = myPos + lookVec * 2;
     float t = 2.0f;
     float tempColor = 0.0f;
-    while (t >=0.0f){
-        vec3 newCoord = myPos + t * lookVec;
-        if (inDataCube(newCoord)) {
-            float currentAlpha = 0.0f;
-            float[64] beziers = getBezierControlPoints(newCoord);
-            currentAlpha = bezierTricubicApprox(beziers, newCoord);
-            //vec3 norm = normalize(bezierTricubicGradient(beziers, newCoord));
-            if (currentAlpha >= 0.2)
-                tempColor = tempColor * (1-currentAlpha) + currentAlpha * 1.0f;
+    if (interpolationType < 0.5f){
+        while (t >=0.0f){
+            vec3 newCoord = myPos + t * lookVec;
+            if (inDataCube(newCoord)) {
+                float currentAlpha = 0.0f;
+                float[64] beziers = getBezierControlPoints(newCoord);
+                currentAlpha = bezierTricubicApprox(beziers, newCoord);
+                if (currentAlpha >= 0.15) {
+                    if (tempColor < 0.001) {
+                        tempColor = 1 - diffuseK;
+                    }
+                    vec3 norm = normalize(bezierTricubicGradient(beziers, newCoord));
+                    vec3 lightVec = normalize(lightPos - newCoord);
+                    float currentColor = diffuseK * dot(lightVec, norm);
+                    tempColor = tempColor * (1-currentAlpha) + currentAlpha * currentColor;
+                }
+            }
+            t = t - .0005f;
         }
-        t = t - .001f;
+    } else {
+        while (t >=0.0f){
+            vec3 newCoord = myPos + t * lookVec;
+            if (inDataCube(newCoord)) {
+                float currentAlpha = 0.0f;
+                float[8] nearestF = getNearestValues(newCoord);
+                vec3[8] nearestG = getNearestGradients(newCoord);
+                currentAlpha = getTrilinearApprox(nearestF, newCoord);
+                if (currentAlpha >= 0.15) {
+                    if (tempColor < 0.001) {
+                        tempColor = 1 - diffuseK;
+                    }
+                    vec3 norm = normalize(getTrilinearGApprox(nearestG, newCoord));
+                    vec3 lightVec = normalize(lightPos - newCoord);
+                    float currentColor = diffuseK * dot(lightVec, norm);
+                    tempColor = tempColor * (1-currentAlpha) + currentAlpha * currentColor;
+                }
+            }
+            t = t - .0005f;
+        }
     }
-    // vec3 newCoord = vec3(zCoord, texCoord.y, texCoord.x);
-    // fragColor = texture(ourTexture, newCoord).r * vec4(1.0f, 1.0f, 1.0f, 1.0f);
-    fragColor = tempColor * vec4(1.0f, 1.0f, 1.0f, 1.0f);
+    fragColor = tempColor * lightColor;
 }
