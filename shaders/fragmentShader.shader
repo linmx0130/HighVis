@@ -23,7 +23,8 @@ float[8] getNearestValues(vec3 coord) {
         for (int j=0;j<2;++j) {
             for (int k=0;k<2;++k) {
                 vec3 newCoord = floor(scaledCoord + vec3(i, j, k)) / dataSize;
-                ret[i * 4 + j * 2 + k] = texture(ourTexture, newCoord).r;
+                int idx = (i << 2) | (j << 1) | k;
+                ret[idx] = texture(ourTexture, newCoord).r;
             }
         }
     }
@@ -76,7 +77,7 @@ float[64] getBezierControlPoints(vec3 coord) {
 }
 float bezier3(int i, float x){
     if (i==0) {
-        return (1.0f-x) * (1.0f-x) * (1.0f-x) * (1.0f - x);
+        return (1.0f-x) * (1.0f-x) * (1.0f-x);
     }
     if (i==1) {
         return 3.0f * x * (1.0f-x) * (1.0f-x);
@@ -84,20 +85,68 @@ float bezier3(int i, float x){
     if (i==2) {
         return 3.0f * x * x * (1.0f-x);
     }
-    return x * x* x* x;
+    return x * x* x;
 }
-float bezierTricubicApprox(vec3 coord) {
-    float[64] beziers = getBezierControlPoints(coord);
+float bezier2(int i, float x) {
+    if (i==0) {
+        return (1.0f-x) * (1.0f-x);
+    }
+    if (i==1) {
+        return 2 * x * (1.0f - x);
+    }
+    return x * x;
+}
+float bezierTricubicApprox(float[64]beziers, vec3 coord) {
     vec3 delta = coord - floor(coord * dataSize) / dataSize;
     float ret = 0.0f;
     for (int i=0;i<4;++i) {
         for (int j=0;j<4; ++j) {
             for (int k=0;k<4; ++k) {
-                float term = beziers[i * 16 + j * 4 + k] * bezier3(i, delta.x) * bezier3(j, delta.y) * bezier3(k, delta.z);
+                int idx = (i << 4) | (j<<2) | k;
+                float term = beziers[idx] * bezier3(i, delta.x) * bezier3(j, delta.y) * bezier3(k, delta.z);
                 ret += term;
             }
         }
     }
+    return ret;
+}
+vec3 bezierTricubicGradient(float[64]beziers, vec3 coord) {
+    vec3 delta = coord - floor(coord * dataSize) / dataSize;
+    vec3 ret;
+    float tmp = 0.0f;
+    for (int i=0;i<3;++i) {
+        for (int j=0;j<4;++j) {
+            for (int k=0;k<4;++k) {
+                float term = beziers[(i+1) * 16 + j * 4 + k] - beziers[i * 16 + j * 4 + k];
+                term = term * bezier2(i, delta.x) * bezier3(j, delta.y) * bezier3(k, delta.z);
+                tmp += term;
+            }
+        }
+    }
+    ret.x = tmp;
+    tmp = 0.0f;
+    for (int i=0;i<4;++i) {
+        for (int j=0;j<3;++j) {
+            for (int k=0;k<4;++k) {
+                float term = beziers[i * 16 + (j+1) * 4 + k] - beziers[i * 16 + j * 4 + k];
+                term = term * bezier3(i, delta.x) * bezier2(j, delta.y) * bezier3(k, delta.z);
+                tmp += term;
+            }
+        }
+    }
+    ret.y = tmp;
+    tmp = 0.0f;
+    for (int i=0;i<4;++i) {
+        for (int j=0;j<4;++j) {
+            for (int k=0;k<3;++k) {
+                float term = beziers[i * 16 + j * 4 + k+1] - beziers[i * 16 + j * 4 + k];
+                term = term * bezier3(i, delta.x) * bezier3(j, delta.y) * bezier2(k, delta.z);
+                tmp += term;
+            }
+        }
+    }
+    ret.z = tmp;
+    ret = ret * 3.0f;
     return ret;
 }
 void main() {
@@ -116,11 +165,13 @@ void main() {
         vec3 newCoord = myPos + t * lookVec;
         if (inDataCube(newCoord)) {
             float currentAlpha = 0.0f;
-            currentAlpha = bezierTricubicApprox(newCoord);
+            float[64] beziers = getBezierControlPoints(newCoord);
+            currentAlpha = bezierTricubicApprox(beziers, newCoord);
+            //vec3 norm = normalize(bezierTricubicGradient(beziers, newCoord));
             if (currentAlpha >= 0.2)
                 tempColor = tempColor * (1-currentAlpha) + currentAlpha * 1.0f;
         }
-        t = t - .005f;
+        t = t - .001f;
     }
     // vec3 newCoord = vec3(zCoord, texCoord.y, texCoord.x);
     // fragColor = texture(ourTexture, newCoord).r * vec4(1.0f, 1.0f, 1.0f, 1.0f);
