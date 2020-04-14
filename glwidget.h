@@ -10,6 +10,7 @@
 #include <QOpenGLTexture>
 #include <QElapsedTimer>
 #include "volumndata.h"
+#include <cmath>
 class GLWidget : public QOpenGLWidget
 {
     Q_OBJECT
@@ -21,6 +22,9 @@ public:
     }
     QVector3D getCameraDirection() {
         return visLookAt - visLookFrom;
+    }
+    QVector3D getLightPos(){
+        return lightPos;
     }
     void setInterpolationType(float t) {
         this->interpolationType = t;
@@ -34,6 +38,19 @@ public:
     void setAlphaThreshold(float t){
         this->alphaThreshold = t;
         update();
+    }
+    void setLightPos(float x, float y, float z){
+        lightPos = QVector3D(x, y, z);
+        update();
+        emit stateChanged();
+    }
+    void setViewAngel(float viewAlpha, float viewTheta){
+        this->viewAlpha = viewAlpha;
+        this->viewTheta = viewTheta;
+        QVector3D v(sin(viewAlpha), cos(viewAlpha) * cos(viewTheta), cos(viewAlpha) * sin(viewTheta));
+        visLookFrom = QVector3D(0.5f, 0.5f, 0.5f) + v * 3.0f;
+        update();
+        emit stateChanged();
     }
 signals:
     void stateChanged();
@@ -55,6 +72,8 @@ private:
     float aspectRatio;
     // vis view parameters
     QVector3D visLookFrom, visLookAt, visLookUp;
+    float viewAlpha, viewTheta;
+    QVector3D lightPos;
     QVector4D lightColor;
     float alphaThreshold;
     float interpolationType;

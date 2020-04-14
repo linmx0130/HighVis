@@ -7,6 +7,7 @@
 #include <QPlainTextEdit>
 #include <QComboBox>
 #include <QSlider>
+#include <QDoubleSpinBox>
 #include "glwidget.h"
 
 class MainWindow : public QWidget
@@ -22,7 +23,8 @@ private slots:
     void onInterpolationChanged(const QString& text);
     void onLightColorPushButtonClicked();
     void onThresholdSliderChanged(int v);
-
+    void onLightPositionChanged();
+    void onSaveImagePushButtonClicked();
 private:
     QVBoxLayout *layout, *sidebarLayout;
     QWidget *sidebar;
@@ -30,9 +32,10 @@ private:
     GLWidget *glWidget;
     QPlainTextEdit *logLabel;
     QComboBox *interpolationComboBox;
-    QPushButton *lightColorPushButton;
+    QPushButton *lightColorPushButton, *saveImagePushButton;
     QSlider *thresholdSlider;
     QColor lightColor;
+    QDoubleSpinBox *lightX, *lightY, *lightZ;
     void buildSidebar();
 };
 #endif // MAINWINDOW_H

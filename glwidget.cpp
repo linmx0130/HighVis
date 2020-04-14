@@ -2,7 +2,7 @@
 #include <QMatrix4x4>
 #include <QKeyEvent>
 #include <QDebug>
-
+#include <QOpenGLExtraFunctions>
 static const GLfloat VERTEX_DATA[] = {
     //face 1 : z= 0.5f
     0.5f, 0.5f, 0.5f,  0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
@@ -14,29 +14,34 @@ static const GLfloat VERTEX_DATA[] = {
  };
 GLWidget::GLWidget(const char* filename, QWidget *nulltpr):
     QOpenGLWidget(nulltpr), m_vbo(nullptr), m_vao(nullptr), m_shader(nullptr), camera_pos(0.f, 0.f, 2.f),
-    camera_direction(0.f, 0.f, 1.f), volumnData(filename), visLookFrom(0.5f, 0.5f, -1.0f), visLookAt(0.5f, 0.5f, 0.5f),
-    visLookUp(0.0f, 1.0f, 0.0f), lightColor(1.0f, 1.0f, 1.0f, 1.0f), alphaThreshold(0.2), interpolationType(0.0f)
+    camera_direction(0.f, 0.f, 1.f), volumnData(filename), visLookAt(0.5f, 0.5f, 0.5f),
+    visLookUp(0.0f, 1.0f, 0.0f), lightPos(0.5f, -2.0f, 0.5f), lightColor(1.0f, 1.0f, 1.0f, 1.0f), alphaThreshold(0.2),
+    interpolationType(0.0f), viewAlpha(0), viewTheta(M_PI * 1.5)
 {
     setFocusPolicy(Qt::StrongFocus); // enable the widget to receive key press
+    setViewAngel(viewAlpha, viewTheta);
+    QVector3D v(sin(viewAlpha), cos(viewAlpha) * cos(viewTheta), cos(viewAlpha) * sin(viewTheta));
+    visLookFrom = QVector3D(0.5f, 0.5f, 0.5f) + v * 2.0f;
 }
 
 GLWidget::~GLWidget() {
 
 }
 void GLWidget::initVolumnTexture(){
-    glDeleteTextures(1, &m_volumn_texture);
-    glGenTextures(1, &m_volumn_texture);
-    glBindTexture(GL_TEXTURE_3D, m_volumn_texture);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);  // The array on the host has 1 byte alignment
-    glTexImage3D(GL_TEXTURE_3D, 0, GL_R8,
+    QOpenGLExtraFunctions *f = this->context()->extraFunctions();
+    f->glDeleteTextures(1, &m_volumn_texture);
+    f->glGenTextures(1, &m_volumn_texture);
+    f->glBindTexture(GL_TEXTURE_3D, m_volumn_texture);
+    f->glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    f->glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    f->glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    f->glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    f->glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);  // The array on the host has 1 byte alignment
+    f->glTexImage3D(GL_TEXTURE_3D, 0, GL_R8,
                  volumnData.getMetaData().size[0],volumnData.getMetaData().size[1], volumnData.getMetaData().size[2],
                  0, GL_RED, GL_UNSIGNED_BYTE, volumnData.getRawData().data());
-    glBindTexture(GL_TEXTURE_3D, 0);
+    f->glBindTexture(GL_TEXTURE_3D, 0);
 }
 void GLWidget::initializeGL()
 {
@@ -93,8 +98,8 @@ void GLWidget::paintGL()
     f->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     m_vao->bind();
     m_shader->bind();
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_3D, m_volumn_texture);
+    f->glActiveTexture(GL_TEXTURE0);
+    f->glBindTexture(GL_TEXTURE_3D, m_volumn_texture);
     //build MVP matrix
     QMatrix4x4 projMat;
     projMat.perspective(45.0f, this->aspectRatio, 0.1f, 100.0f); // view: 45 degree
@@ -111,7 +116,7 @@ void GLWidget::paintGL()
     QVector3D dataSize(volumnData.getMetaData().size[0], volumnData.getMetaData().size[1], volumnData.getMetaData().size[2]);
     m_shader->setUniformValue(m_shader->uniformLocation("dataSize"), dataSize);
     m_shader->setUniformValue(m_shader->uniformLocation("diffuseK"), 0.9f);
-    m_shader->setUniformValue(m_shader->uniformLocation("lightPos"), QVector3D(0.5f, -2.0f, 0.5f));
+    m_shader->setUniformValue(m_shader->uniformLocation("lightPos"), lightPos);
     m_shader->setUniformValue(m_shader->uniformLocation("lightColor"), this->lightColor);
     m_shader->setUniformValue(m_shader->uniformLocation("interpolationType"), this->interpolationType);
     m_shader->setUniformValue(m_shader->uniformLocation("alphaThreshold"), this->alphaThreshold);
@@ -130,20 +135,14 @@ void GLWidget::keyPressEvent(QKeyEvent *event) {
     float new_x, new_y, new_z;
     switch(event->key()) {
         case Qt::Key::Key_Up:
-            new_z = visLookFrom.z() * COS_2_DEG - visLookFrom.y() * SIN_2_DEG;
-            new_y = visLookFrom.z() * SIN_2_DEG + visLookFrom.y() * COS_2_DEG;
-            visLookFrom.setY(new_y);
-            visLookFrom.setZ(new_z);
+            setViewAngel(viewAlpha, viewTheta + M_PI / 90);
             new_z = visLookUp.z() * COS_2_DEG - visLookUp.y() * SIN_2_DEG;
             new_y = visLookUp.z() * SIN_2_DEG + visLookUp.y() * COS_2_DEG;
             visLookUp.setZ(new_z);
             visLookUp.setY(new_y);
             break;
         case Qt::Key::Key_Down:
-            new_z = visLookFrom.z() * COS_2_DEG + visLookFrom.y() * SIN_2_DEG;
-            new_y = -visLookFrom.z() * SIN_2_DEG + visLookFrom.y() * COS_2_DEG;
-            visLookFrom.setY(new_y);
-            visLookFrom.setZ(new_z);
+            setViewAngel(viewAlpha, viewTheta - M_PI / 90);
             new_z = visLookUp.z() * COS_2_DEG + visLookUp.y() * SIN_2_DEG;
             new_y = -visLookUp.z() * SIN_2_DEG + visLookUp.y() * COS_2_DEG;
             visLookUp.setZ(new_z);
@@ -152,16 +151,10 @@ void GLWidget::keyPressEvent(QKeyEvent *event) {
 
         case Qt::Key::Key_Right:
             // rotate the vis viewpoint 2 degree anti-clockwise with respect to look-at point
-            new_x = visLookFrom.x() * COS_2_DEG - visLookFrom.z() * SIN_2_DEG;
-            new_z = visLookFrom.x() * SIN_2_DEG + visLookFrom.z() * COS_2_DEG;
-            visLookFrom.setX(new_x);
-            visLookFrom.setZ(new_z);
+            setViewAngel(viewAlpha + M_PI / 90, viewTheta);
             break;
         case Qt::Key::Key_Left:
-            new_x = visLookFrom.x() * COS_2_DEG + visLookFrom.z() * SIN_2_DEG;
-            new_z = -visLookFrom.x() * SIN_2_DEG + visLookFrom.z() * COS_2_DEG;
-            visLookFrom.setX(new_x);
-            visLookFrom.setZ(new_z);
+            setViewAngel(viewAlpha - M_PI / 90, viewTheta);
             break;
     }
     emit stateChanged();

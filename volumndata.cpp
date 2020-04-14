@@ -12,7 +12,6 @@ VolumnMetaData VolumnData::parseMetaFile(const char *filename) {
     QFile file(filename);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         qFatal("Can't open file %s!", filename);
-        //exit(2);
     }
     QByteArray buf = file.readAll();
     file.close();

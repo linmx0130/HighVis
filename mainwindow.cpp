@@ -3,6 +3,8 @@
 #include "volumndata.h"
 #include <QLabel>
 #include <QColorDialog>
+#include <QMessageBox>
+
 MainWindow::MainWindow(const char* filename, QWidget *parent)
     : QWidget(parent), layout(nullptr), lightColor(255, 255, 255)
 {
@@ -45,10 +47,37 @@ void MainWindow::buildSidebar() {
     thresholdSlider->setValue(20);
     connect(thresholdSlider, SIGNAL(valueChanged(int)), this, SLOT(onThresholdSliderChanged(int)));
     sidebarLayout->addWidget(thresholdSlider);
+
+    QLabel *lightPosLabel = new QLabel("Light position (X, Y, Z): ");
+    sidebarLayout->addWidget(lightPosLabel);
+    QHBoxLayout *lightPosLayout = new QHBoxLayout;
+    lightX = new QDoubleSpinBox(this);
+    lightY = new QDoubleSpinBox(this);
+    lightZ = new QDoubleSpinBox(this);
+    lightX->setRange(-3.0, 3.0);
+    lightX->setSingleStep(0.1);
+    lightX->setValue(0.5);
+    lightY->setRange(-3.0, 3.0);
+    lightY->setSingleStep(0.1);
+    lightY->setValue(-2.0);
+    lightZ->setRange(-3.0, 3.0);
+    lightZ->setSingleStep(0.1);
+    lightZ->setValue(0.5);
+    lightPosLayout->addWidget(lightX);
+    lightPosLayout->addWidget(lightY);
+    lightPosLayout->addWidget(lightZ);
+    sidebarLayout->addLayout(lightPosLayout);
+    connect(lightX, SIGNAL(valueChanged(double)), this, SLOT(onLightPositionChanged()));
+    connect(lightY, SIGNAL(valueChanged(double)), this, SLOT(onLightPositionChanged()));
+    connect(lightZ, SIGNAL(valueChanged(double)), this, SLOT(onLightPositionChanged()));
+
+    saveImagePushButton = new QPushButton("Save screen shot");
+    connect(saveImagePushButton, SIGNAL(clicked()), this, SLOT(onSaveImagePushButtonClicked()));
+    sidebarLayout->addWidget(saveImagePushButton);
     sidebarLayout->addStretch();
     sidebar = new QWidget(this);
     sidebar->setLayout(sidebarLayout);
-    sidebar->setMaximumSize(200, 600);
+    sidebar->setMaximumSize(240, 600);
 }
 MainWindow::~MainWindow()
 {
@@ -60,8 +89,8 @@ void MainWindow::glWidgetStateChange()
     QVector3D camera_pos = glWidget->getCameraPos();
     QString log;
     log = log.asprintf("Camera Pos = (%f, %f, %f).\n", camera_pos.x(), camera_pos.y(), camera_pos.z());
-    QVector3D camera_dir = glWidget->getCameraDirection();
-    log.append(log.asprintf("Camera Dir = (%f, %f, %f).\n", camera_dir.x(), camera_dir.y(), camera_dir.z()));
+    QVector3D lightPos = glWidget->getLightPos();
+    log.append(log.asprintf("LightPos = (%f, %f, %f).\n", lightPos.x(), lightPos.y(), lightPos.z()));
     logLabel->setPlainText(log);
 }
 
@@ -86,5 +115,19 @@ void MainWindow::onLightColorPushButtonClicked()
 void MainWindow::onThresholdSliderChanged(int v)
 {
     glWidget->setAlphaThreshold((float)v / 100.0f);
+}
+
+void MainWindow::onLightPositionChanged()
+{
+    glWidget->setLightPos(lightX->value(), lightY->value(), lightZ->value());
+}
+
+void MainWindow::onSaveImagePushButtonClicked()
+{
+    QImage img = glWidget->grabFramebuffer();
+    img.save("HighVisScreenShot.png");
+    QMessageBox mbox(QMessageBox::Information, "HighVis",
+                     "Saved the image to HighVisScreenShot.png");
+    mbox.exec();
 }
 
