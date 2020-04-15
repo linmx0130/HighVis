@@ -173,18 +173,31 @@ float getTrilinearApprox(float[8] f, vec3 coord){
     ret += f[7] * delta.x * delta.y * delta.z;
     return ret;
 }
-vec3 getTrilinearGApprox(vec3[8] f, vec3 coord){
+vec3 getTrilinearGApprox(float[8] f, vec3 coord){
     vec3 delta = coord * dataSize;
     delta = delta - floor(delta);
     vec3 ret = vec3(0.0f, 0.0f, 0.0f);
-    ret += f[0] * (1.0f-delta.x) * (1.0f-delta.y) * (1.0f-delta.z);
-    ret += f[1] * (1.0f-delta.x) * (1.0f-delta.y) * delta.z;
-    ret += f[2] * (1.0f-delta.x) * delta.y * (1.0f-delta.z);
-    ret += f[3] * (1.0f-delta.x) * delta.y * delta.z;
-    ret += f[4] * delta.x * (1.0f-delta.y) * (1.0f-delta.z);
-    ret += f[5] * delta.x * (1.0f-delta.y) * delta.z;
-    ret += f[6] * delta.x * delta.y * (1.0f-delta.z);
-    ret += f[7] * delta.x * delta.y * delta.z;
+    for (int i=0;i<=1;++i) {
+        for (int j=0;j<=1;++j) {
+            for (int k=0;k<=1;++k) {
+                int idx = i*4 + j *2 + k;
+                float dx = (1.0f - delta.y) * (1.0f - j) + delta.y * j;
+                dx *= (1.0f - delta.z) * (1.0f - k) + delta.z * k;
+                dx *= f[idx];
+                dx *= (i==0)?-1.0f : 1.0f;
+                ret.x += dx;
+                float dy = (1.0f - delta.x) * (1.0f - i) + delta.x * i;
+                dy *= (1.0f - delta.z) * (1.0f - k) + delta.z * k;
+                dy *= f[idx];
+                dy *= (j==0)? -1.0f: 1.0f;
+                ret.y += dy;
+                float dz = (1.0f - delta.y)* (1.0f - j) + delta.y * j;
+                dz *= (1.0f - delta.x) * (1.0f-i) + delta.x * i;
+                dz *= (k==0)? -1.0f: 1.0f;
+                ret.y += dz;
+            }
+        }
+    }
     return ret;
 }
 void main() {
@@ -221,10 +234,9 @@ void main() {
             if (inDataCube(newCoord)) {
                 float currentAlpha = 0.0f;
                 float[8] nearestF = getNearestValues(newCoord);
-                vec3[8] nearestG = getNearestGradients(newCoord);
                 currentAlpha = getTrilinearApprox(nearestF, newCoord);
                 if (currentAlpha >= alphaThreshold) {
-                    vec3 norm = normalize(getTrilinearGApprox(nearestG, newCoord));
+                    vec3 norm = normalize(getTrilinearGApprox(nearestF, newCoord));
                     vec3 lightVec = normalize(lightPos - newCoord);
                     float currentColor = diffuseK * dot(lightVec, norm) + (1-diffuseK);
                     tempColor = tempColor * (1-currentAlpha) + currentAlpha * currentColor;

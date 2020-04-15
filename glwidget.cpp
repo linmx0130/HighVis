@@ -132,7 +132,7 @@ void GLWidget::keyPressEvent(QKeyEvent *event) {
     // 2 degree rotation
     const float SIN_2_DEG = 0.03489949670250097;
     const float COS_2_DEG = 0.9993908270190958;
-    float new_x, new_y, new_z;
+    float new_y, new_z;
     switch(event->key()) {
         case Qt::Key::Key_Up:
             setViewAngel(viewAlpha, viewTheta + M_PI / 90);
