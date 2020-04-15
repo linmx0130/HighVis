@@ -207,12 +207,9 @@ void main() {
                 float[64] beziers = getBezierControlPoints(newCoord);
                 currentAlpha = bezierTricubicApprox(beziers, newCoord);
                 if (currentAlpha >= alphaThreshold) {
-                    if (tempColor < 0.001) {
-                        tempColor = 1 - diffuseK;
-                    }
                     vec3 norm = normalize(bezierTricubicGradient(beziers, newCoord));
                     vec3 lightVec = normalize(lightPos - newCoord);
-                    float currentColor = diffuseK * dot(lightVec, norm);
+                    float currentColor = diffuseK * dot(lightVec, norm) + (1-diffuseK);
                     tempColor = tempColor * (1-currentAlpha) + currentAlpha * currentColor;
                 }
             }
@@ -227,12 +224,9 @@ void main() {
                 vec3[8] nearestG = getNearestGradients(newCoord);
                 currentAlpha = getTrilinearApprox(nearestF, newCoord);
                 if (currentAlpha >= alphaThreshold) {
-                    if (tempColor < 0.001) {
-                        tempColor = 1 - diffuseK;
-                    }
                     vec3 norm = normalize(getTrilinearGApprox(nearestG, newCoord));
                     vec3 lightVec = normalize(lightPos - newCoord);
-                    float currentColor = diffuseK * dot(lightVec, norm);
+                    float currentColor = diffuseK * dot(lightVec, norm) + (1-diffuseK);
                     tempColor = tempColor * (1-currentAlpha) + currentAlpha * currentColor;
                 }
             }
